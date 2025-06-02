@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artistry - Modern Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px 0;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 300;
+            color: white;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+            margin-bottom: 15px;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .artwork-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .artwork-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+        }
+
+        /* MODIFIED: Wrapper for gallery image and overlay */
+        .artwork-image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 300px; 
+            overflow: hidden; /* To contain scaled image */
+        }
+
+        .artwork-image {
+            width: 100%;
+            height: 100%; /* Fills the wrapper */
+            object-fit: cover;
+            transition: transform 0.4s ease;
+            /* Drag prevention and selection prevention */
+            -webkit-user-drag: none;
+            user-drag: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .artwork-card:hover .artwork-image {
+            transform: scale(1.05);
+        }
+
+        .artwork-info {
+            padding: 25px;
+        }
+
+        .artwork-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .artwork-caption {
+            color: #7f8c8d;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* NEW: Overlay for images to intercept right-clicks */
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* On top of the image */
+            /* background: rgba(255,0,0,0.1); */ /* For debugging visibility */
+        }
+
+
+        /* Lightbox Styles */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+            animation: fadeInScale 0.3s ease;
+            /* Ensure lightbox content can hold the wrapper */
+            display: flex; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* NEW: Wrapper for lightbox image and overlay */
+        .lightbox-image-wrapper {
+            position: relative;
+            width: 100%; /* Adjust as needed, or let content dictate */
+            height: 100%; /* Adjust as needed, or let content dictate */
+            display: flex; /* To center image if it's smaller */
+            justify-content: center;
+            align-items: center;
+            /* Ensure it takes up available space for the image */
+            max-width: 100%; 
+            max-height: calc(100% - 60px); /* Account for caption space */
+        }
+
+        .lightbox-image {
+            /* width: 100%; */ /* Let max-width/height and object-fit handle this */
+            /* height: 100%; */
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+             /* Drag prevention and selection prevention */
+            -webkit-user-drag: none;
+            user-drag: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .lightbox-caption {
+            position: absolute;
+            bottom: -50px; /* Keep original positioning relative to lightbox-content */
+            left: 0;
+            right: 0;
+            color: white;
+            text-align: center;
+            font-size: 1.1rem;
+            padding: 10px;
+            width: 100%; /* Ensure it spans the lightbox content width */
+        }
+
+        .close-btn {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: background 0.3s ease;
+            z-index: 2; /* Above image overlay */
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.4);
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            z-index: 2; /* Above image overlay */
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.4);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .prev-btn {
+            left: -60px;
+        }
+
+        .next-btn {
+            right: -60px;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .gallery {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .artwork-image-wrapper { /* MODIFIED: Adjust wrapper height */
+                height: 250px;
+            }
+            /* .artwork-image height is 100% of wrapper, so it adjusts automatically */
+
+            .lightbox-image-wrapper {
+                 max-height: calc(100% - 50px); /* Account for caption space on smaller screens */
+            }
+
+            .nav-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
+
+            .prev-btn {
+                left: -50px;
+            }
+
+            .next-btn {
+                right: -50px;
+            }
+
+            .lightbox-caption {
+                bottom: -40px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .prev-btn {
+                left: 10px;
+            }
+
+            .next-btn {
+                right: 10px;
+            }
+
+            .close-btn {
+                top: 10px;
+                right: 10px;
+            }
+        }
+
+        /* Loading animation */
+        .artwork-image { /* Keep loading anim on image itself */
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        .artwork-image[src]:not([src=""]) { /* Refined selector */
+            /* Styles removed by JS onload are more reliable */
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ARTISTRY</h1>
+            <p class="subtitle">A curated collection of contemporary works</p>
+        </header>
+
+        <div class="gallery" id="gallery">
+            <!-- Artwork cards will be generated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-content">
+            <span class="close-btn" id="closeBtn">&times;</span>
+            <span class="nav-btn prev-btn" id="prevBtn">&#8249;</span>
+            <span class="nav-btn next-btn" id="nextBtn">&#8250;</span>
+            <!-- MODIFIED: Added wrapper and overlay for lightbox image -->
+            <div class="lightbox-image-wrapper">
+                <img class="lightbox-image" id="lightboxImage" src="" alt="">
+                <div class="image-overlay lightbox-image-overlay"></div>
+            </div>
+            <div class="lightbox-caption" id="lightboxCaption"></div>
+        </div>
+    </div>
+
+    <script>
+        // Artwork data - you can modify the captions here
+        const artworks = [
+            { src: '1.jpg', title: 'Artwork 1', caption: 'The Caption' },
+            { src: '2.jpg', title: 'Artwork 2', caption: 'The Caption' },
+            { src: '3.jpg', title: 'Artwork 3', caption: 'The Caption' },
+            { src: '4.jpg', title: 'Artwork 4', caption: 'The Caption' },
+            { src: '5.jpg', title: 'Artwork 5', caption: 'The Caption' },
+            { src: '6.jpg', title: 'Artwork 6', caption: 'The Caption' },
+            { src: '7.jpg', title: 'Artwork 7', caption: 'The Caption' },
+            { src: '8.jpg', title: 'Artwork 8', caption: 'The Caption' },
+            { src: '9.jpg', title: 'Artwork 9', caption: 'The Caption' },
+            { src: '10.jpg', title: 'Artwork 10', caption: 'The Caption' },
+            { src: '11.jpg', title: 'Artwork 11', caption: 'The Caption' },
+            { src: '12.jpg', title: 'Artwork 12', caption: 'The Caption' },
+            { src: '13.jpg', title: 'Artwork 13', caption: 'The Caption' }
+        ];
+
+        let currentImageIndex = 0;
+
+        // Generate gallery cards
+        function generateGallery() {
+            const gallery = document.getElementById('gallery');
+            
+            artworks.forEach((artwork, index) => {
+                const card = document.createElement('div');
+                card.className = 'artwork-card';
+                card.onclick = () => openLightbox(index);
+                
+                // MODIFIED: Added artwork-image-wrapper and image-overlay
+                card.innerHTML = `
+                    <div class="artwork-image-wrapper">
+                        <img class="artwork-image" src="${artwork.src}" alt="${artwork.title}" 
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xNTAgMTAwTDI1MCAyMDBMMzAwIDE1MEwzNTAgMjAwVjI1MEgxMDBWMTAwSDE1MFoiIGZpbGw9IiNEREREREQiLz4KPGNpcmNsZSBjeD0iMTQwIiBjeT0iMTMwIiByPSIyMCIgZmlsbD0iI0RERERERCIvPgo8dGV4dCB4PSIyMDAiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmaWxsPSIjOTk5OTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbWFnZSBOb3QgRm91bmQ8L3RleHQ+Cjwvc3ZnPg=='"
+                             onload="this.style.animation='none'; this.style.background='none';">
+                        <div class="image-overlay"></div>
+                    </div>
+                    <div class="artwork-info">
+                        <h3 class="artwork-title">${artwork.title}</h3>
+                        <p class="artwork-caption">${artwork.caption}</p>
+                    </div>
+                `;
+                
+                gallery.appendChild(card);
+            });
+        }
+
+        // Lightbox functionality
+        function openLightbox(index) {
+            currentImageIndex = index;
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImage = document.getElementById('lightboxImage');
+            const lightboxCaption = document.getElementById('lightboxCaption');
+            
+            lightboxImage.src = artworks[index].src;
+            lightboxCaption.textContent = artworks[index].caption;
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function nextImage() {
+            currentImageIndex = (currentImageIndex + 1) % artworks.length;
+            openLightbox(currentImageIndex); // Re-calling openLightbox will set the new src
+        }
+
+        function prevImage() {
+            currentImageIndex = (currentImageIndex - 1 + artworks.length) % artworks.length;
+            openLightbox(currentImageIndex); // Re-calling openLightbox will set the new src
+        }
+
+        // Event listeners
+        document.getElementById('closeBtn').onclick = closeLightbox;
+        document.getElementById('nextBtn').onclick = nextImage;
+        document.getElementById('prevBtn').onclick = prevImage;
+
+        // Close lightbox when clicking outside the image (on the backdrop)
+        document.getElementById('lightbox').onclick = function(e) {
+            if (e.target === this) { // Ensure click is on lightbox itself, not content
+                closeLightbox();
+            }
+        };
+
+        // Keyboard navigation and Save prevention
+        document.addEventListener('keydown', function(e) {
+            // Prevent Ctrl+S / Cmd+S for saving page
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                // console.log("Save action prevented."); // Optional: for debugging
+            }
+
+            if (document.getElementById('lightbox').classList.contains('active')) {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowRight') nextImage();
+                if (e.key === 'ArrowLeft') prevImage();
+            }
+        });
+        
+        // NEW: Prevent context menu (right-click) globally
+        // This is a broad approach; for more complex sites, you might target specific elements.
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // Initialize gallery
+        generateGallery();
+
+        // Add smooth scrolling and parallax effects
+        window.addEventListener('scroll', function() {
+            const scrolled = window.pageYOffset;
+            const header = document.querySelector('header');
+            header.style.transform = `translateY(${scrolled * 0.5}px)`;
+        });
+
+        // Intersection Observer for animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all artwork cards for scroll animations
+        setTimeout(() => {
+            const cards = document.querySelectorAll('.artwork-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(50px)';
+                card.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
+                observer.observe(card);
+            });
+        }, 100);
+
+        // Informational comment:
+        // The measures taken (disabled right-click, overlays, no-drag CSS, Ctrl+S prevention)
+        // are deterrents to make casual image downloading harder. They are not foolproof security.
+        // Determined users can still access images via browser developer tools or screenshots.
+    </script>
+</body>
+</html>
